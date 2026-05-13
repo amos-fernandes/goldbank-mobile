@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/goldbank-mobile/"
+title = "GOLD BANK Mobile"
+version = "1.0.0"
+id = "artifacts/goldbank-mobile"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/goldbank-mobile/" ]
+localPort = 19862
+
+[services.development]
+run = "pnpm --filter @workspace/goldbank-mobile run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/goldbank-mobile", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/goldbank-mobile", "run", "serve" ]
+
+[services.env]
+PORT = "19862"
+BASE_PATH = "/goldbank-mobile/"
