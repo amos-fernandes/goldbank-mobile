@@ -52,16 +52,18 @@ async function apiPost(path: string, body: Record<string, unknown>): Promise<Aut
     body: JSON.stringify(body),
   });
 
+  const text = await res.text();
   const contentType = res.headers.get("content-type");
-  if (!contentType || !contentType.includes("application/json")) {
-    const text = await res.text();
-    console.error(`[API ERROR] Expected JSON but got ${contentType}. Body: ${text.slice(0, 200)}`);
-    throw new Error(`Erro no servidor (${res.status}). Verifique o log.`);
-  }
 
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error ?? "Erro na requisição");
-  return data as AuthUser;
+  try {
+    const data = JSON.parse(text);
+    if (!res.ok) throw new Error(data.error ?? "Erro na requisição");
+    return data as AuthUser;
+  } catch (e) {
+    if (e instanceof Error && e.message === "Erro na requisição") throw e;
+    console.error(`[API ERROR] Failed to parse JSON. Status: ${res.status}, Type: ${contentType}. Body: ${text.slice(0, 200)}`);
+    throw new Error(`Erro de resposta do servidor (${res.status}).`);
+  }
 }
 
 async function secureGet(key: string): Promise<string | null> {

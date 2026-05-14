@@ -83,7 +83,7 @@ export const useGetWalletBalance = () => {
 export const useCreatePixDeposit = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { data: { amount: number; description: string } }) => {
+    mutationFn: async (payload: { data: { amount: number; description: string; customerId?: string } }) => {
       const { data } = await api.post('/api/pix/deposit', payload.data);
       return data as PixDepositResponse;
     },

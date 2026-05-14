@@ -58,8 +58,13 @@ export default function WalletScreen() {
       return;
     }
     try {
+      console.log("[WALLET] Solicitando PIX para o usuário:", user?.id);
       const result = await depositMutation.mutateAsync({
-        data: { amount: val, description: "Depósito via PIX - GOLD BANK" },
+        data: { 
+          amount: val, 
+          description: "Depósito via PIX - GOLD BANK",
+          customerId: user?.id 
+        },
       });
       setQrData({
         qrCodeBase64: result.qrCodeBase64,
