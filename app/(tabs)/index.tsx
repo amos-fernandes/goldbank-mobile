@@ -20,7 +20,7 @@ import {
   useGetDashboardSummary,
   useGetRecentTransactions,
   useGetWalletBalance,
-} from "@workspace/api-client-react";
+} from "@/services";
 
 export default function HomeScreen() {
   const colors = useColors();

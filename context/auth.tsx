@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
-import { setAuthTokenGetter } from "@workspace/api-client-react";
+import { setAuthTokenGetter } from "@/services/api";
 
 const TOKEN_KEY = "gb_mobile_token";
-const BASE_URL = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
 
 export type AsaasStatus = "PENDING" | "ACTIVE" | "REJECTED";
 
@@ -44,11 +44,21 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 async function apiPost(path: string, body: Record<string, unknown>): Promise<AuthUser> {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const url = `${BASE_URL}${path}`;
+  console.log(`[API POST] ${url}`, body);
+  const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
+
+  const contentType = res.headers.get("content-type");
+  if (!contentType || !contentType.includes("application/json")) {
+    const text = await res.text();
+    console.error(`[API ERROR] Expected JSON but got ${contentType}. Body: ${text.slice(0, 200)}`);
+    throw new Error(`Erro no servidor (${res.status}). Verifique o log.`);
+  }
+
   const data = await res.json();
   if (!res.ok) throw new Error(data.error ?? "Erro na requisição");
   return data as AuthUser;

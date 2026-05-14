@@ -56,6 +56,11 @@ export default function ProfileScreen() {
     { label: "Open Finance", icon: "🏦" },
     { label: "Suporte", icon: "💬" },
     { label: "Sobre o app", icon: "ℹ️" },
+    { 
+      label: user?.asaasStatus === "ACTIVE" ? "Identidade Verificada" : "Verificar Identidade", 
+      icon: "🪪",
+      action: () => router.push("/(auth)/kyc")
+    },
     { label: "Sair", icon: "🚪", action: confirmLogout, danger: true },
   ];
 

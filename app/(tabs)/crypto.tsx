@@ -22,7 +22,7 @@ import {
   useGetBinancePrices,
   useGetMbPrices,
   useSaveMbCredentials,
-} from "@workspace/api-client-react";
+} from "@/services";
 
 const BUYABLE = ["BTC", "ETH", "SOL", "XRP", "BNB", "ADA", "USDT"];
 
@@ -134,7 +134,7 @@ export default function CryptoScreen() {
               <ActivityIndicator color={colors.gold600} style={{ padding: 40 }} />
             ) : (
               <View style={[styles.list, { backgroundColor: colors.darkGold }]}>
-                {(mbPrices ?? []).map((p) => (
+                {Array.isArray(mbPrices) && mbPrices.map((p) => (
                   <TouchableOpacity
                     key={p.coin}
                     onPress={() => {

@@ -22,7 +22,7 @@ import { formatBRL } from "@/utils/formatters";
 import {
   useCreatePixDeposit,
   useGetWalletBalance,
-} from "@workspace/api-client-react";
+} from "@/services";
 
 export default function WalletScreen() {
   const colors = useColors();
