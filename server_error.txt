@@ -1,0 +1,10 @@
+[ASAAS ERROR] {
+  errors: [
+    {
+      code: 'invalid_object',
+      description: 'O CPF/CNPJ informado é inválido.'
+    }
+  ]
+}
+[BALANCE ERROR] Request failed with status code 404
+[MB ERROR] Cannot read properties of undefined (reading 'split')

@@ -4,3 +4,11 @@
 [REQ] GET /
 [REQ] GET /
 [REQ] GET /
+[REQ] POST /api/auth/register
+[ASAAS] Registrando: test_deploy_final@goldbank.com.br
+[REQ] POST /api/auth/login
+[REQ] GET /api/auth/me
+[REQ] GET /api/wallet/balance
+[REQ] GET /api/wallet/transactions
+[REQ] GET /api/crypto/mb/prices
+[REQ] POST /api/crypto/buy

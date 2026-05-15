@@ -10,7 +10,7 @@ const {
   ASAAS_BASE_URL,
   ASAAS_WALLET_ID,
   ENCRYPTION_KEY,
-  PORT = 8081
+  PORT = 8082
 } = process.env;
 
 const DB_PATH = path.join(__dirname, 'db.json');
@@ -256,7 +256,7 @@ const server = http.createServer(async (req, res) => {
             params: { symbols: ['BTC-BRL', 'ETH-BRL', 'SOL-BRL', 'XRP-BRL', 'BNB-BRL', 'ADA-BRL', 'USDT-BRL'] }
           });
           const prices = data.map(t => ({
-            coin: t.symbol.split('-')[0],
+            coin: t.pair.split('-')[0],
             last: parseFloat(t.last),
             open: parseFloat(t.open)
           }));
