@@ -171,17 +171,18 @@ PORT=8081
 - **GET /api/auth/me**: endpoint de restauração de sessão implementado
 - **GET /api/wallet/balance**: consulta saldo real via ASAAS (`/wallets/{id}/balance`)
 - **GET /api/dashboard/summary**: dados dinâmicos do ASAAS
+- **GET /api/wallet/transactions**: NOVO! Endpoint integrado ao ASAAS para histórico de pagamentos
 - **GET /api/crypto/mb/prices**: preços reais da API pública do Mercado Bitcoin
 - **GET /api/crypto/binance/prices**: preços reais da API pública da Binance
-- **POST /api/user/mb-credentials**: salva credenciais criptografadas (AES-256)
+- **POST /api/crypto/buy**: NOVO! Simulação de compra de cripto com cálculo de estimativa
+- **POST /api/user/mb-credentials**: segurança aprimorada com `AES-256-CBC` (IV dinâmico)
 - **POST /api/user/kyc**: endpoint de upload de documentos
+- **UI/UX**: Componente `TransactionRow` corrigido para tipos reais e visual premium
 
-### Fluxo para testar PIX:
-1. `npm run serve` (inicia o servidor na porta 8081)
-2. Abrir app → Registrar nova conta
-3. Fazer Login
-4. Ir em Carteira → Depositar via PIX
-5. QR Code real gerado pelo ASAAS
+### Próximos Passos Sugeridos:
+- Implementar troca real de cripto via MB API usando as credenciais salvas.
+- Adicionar suporte a Sandbox/Produção dinâmico baseado no prefixo da API Key.
+- Resolver incompatibilidade do Jest no ambiente Node 20+ com React 19.
 
 ---
 

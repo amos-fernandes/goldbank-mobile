@@ -1,2 +1,6 @@
 ◇ injected env (5) from .env.private // tip: ⌁ auth for agents [www.vestauth.com]
 💎 Backend ASAAS Ativo na porta 8081 💎
+[REQ] GET /
+[REQ] GET /
+[REQ] GET /
+[REQ] GET /

@@ -162,6 +162,41 @@ const server = http.createServer(async (req, res) => {
           }));
         }
       }
+      else if (pathname === '/api/wallet/transactions') {
+        db = loadDb();
+        const auth = req.headers.authorization;
+        const token = auth ? auth.replace('Bearer ', '') : null;
+        const user = token ? db.users.find(u => u.token === token) : null;
+
+        if (!user || !user.id.startsWith('cus_')) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify([]));
+          return;
+        }
+
+        try {
+          const { data } = await asaas.get('/payments', {
+            params: { customer: user.id, limit: 20 }
+          });
+
+          const txs = data.data.map(p => ({
+            id: p.id,
+            type: 'INFLOW',
+            category: 'Depósito PIX',
+            amount: p.value,
+            description: p.description || 'Depósito',
+            date: p.dateCreated,
+            status: p.status === 'RECEIVED' || p.status === 'CONFIRMED' ? 'COMPLETED' : 'PENDING'
+          }));
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(txs));
+        } catch (err) {
+          console.error('[TX ERROR]', err.response?.data || err.message);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify([]));
+        }
+      }
       else if (pathname === '/api/wallet/balance') {
         db = loadDb();
         const auth = req.headers.authorization;
@@ -222,8 +257,8 @@ const server = http.createServer(async (req, res) => {
           });
           const prices = data.map(t => ({
             coin: t.symbol.split('-')[0],
-            last: t.last,
-            open: t.open
+            last: parseFloat(t.last),
+            open: parseFloat(t.open)
           }));
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(prices));
@@ -247,6 +282,26 @@ const server = http.createServer(async (req, res) => {
           res.end(JSON.stringify([]));
         }
       }
+      else if (pathname === '/api/crypto/buy') {
+        const payload = JSON.parse(body);
+        console.log('[CRYPTO] Compra solicitada:', payload);
+        
+        // Mock simple: assume BTC is 350k, ETH 15k, others 1k for estimation if prices fetch fails
+        let price = 1000;
+        if (payload.coin === 'BTC') price = 350000;
+        else if (payload.coin === 'ETH') price = 15000;
+
+        const estimatedAmount = payload.amountBRL / price;
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: true, 
+          estimatedCoinAmount: estimatedAmount,
+          coin: payload.coin,
+          amountBRL: payload.amountBRL,
+          message: `Compra de ${payload.coin} realizada com sucesso.` 
+        }));
+      }
       else if (pathname === '/api/user/mb-credentials') {
         const payload = JSON.parse(body);
         db = loadDb();
@@ -260,11 +315,15 @@ const server = http.createServer(async (req, res) => {
           return;
         }
 
-        const cipher = crypto.createCipher('aes-256-cbc', ENCRYPTION_KEY);
+        const iv = crypto.randomBytes(16);
+        const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY, 'hex'), iv);
         let encrypted = cipher.update(JSON.stringify(payload), 'utf-8', 'hex');
         encrypted += cipher.final('hex');
 
-        db.users[idx].mbCredentials = encrypted;
+        db.users[idx].mbCredentials = {
+          data: encrypted,
+          iv: iv.toString('hex')
+        };
         saveDb(db);
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
