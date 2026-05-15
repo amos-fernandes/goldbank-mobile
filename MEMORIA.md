@@ -173,6 +173,7 @@ PORT=8081
 - **Persistência Real**: Banco de dados `db.json` ativo, garantindo que usuários e sessões sobrevivam a reinicializações.
 - **Segurança**: Credenciais MB protegidas com **AES-256-CBC** e IV dinâmico.
 - **Conectividade**: Configuração de IP local atualizada para acesso estável via rede Wi-Fi.
+- **Fallbacks Inteligentes**: Implementado fallback automático para Depósito PIX e Saldo. Caso a conta Asaas não esteja aprovada para PIX ou o Wallet ID seja inválido, o sistema retorna dados simulados (Mock) para não travar o desenvolvimento da interface.
 
 ### 🚀 Roadmap para Produção:
 1.  **Deploy em Cloud**: Migrar o `server/serve.js` para um ambiente Node.js (Heroku/Vercel/AWS).
