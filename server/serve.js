@@ -1,6 +1,8 @@
 const http = require('http');
 const axios = require('axios');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config({ path: '.env.private' });
 
 const {
@@ -11,6 +13,25 @@ const {
   PORT = 8081
 } = process.env;
 
+const DB_PATH = path.join(__dirname, 'db.json');
+
+function loadDb() {
+  try {
+    if (fs.existsSync(DB_PATH)) {
+      return JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+    }
+  } catch (e) {
+    console.error('[DB] Erro ao ler db.json:', e.message);
+  }
+  return { users: [], transactions: [] };
+}
+
+function saveDb(data) {
+  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
+}
+
+let db = loadDb();
+
 const asaas = axios.create({
   baseURL: ASAAS_BASE_URL,
   headers: {
@@ -18,8 +39,6 @@ const asaas = axios.create({
     'Content-Type': 'application/json'
   }
 });
-
-const db = { users: [], transactions: [] };
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
@@ -43,7 +62,7 @@ const server = http.createServer(async (req, res) => {
       if (pathname === '/api/auth/register') {
         const payload = JSON.parse(body);
         console.log('[ASAAS] Registrando:', payload.email);
-        
+
         try {
           const asaasCustomer = await asaas.post('/customers', {
             name: payload.name,
@@ -59,9 +78,13 @@ const server = http.createServer(async (req, res) => {
             email: payload.email,
             asaasStatus: 'ACTIVE',
             walletId: ASAAS_WALLET_ID,
-            token: 'jwt_mock_' + Date.now()
+            token: crypto.randomBytes(32).toString('hex')
           };
-          
+
+          db = loadDb();
+          db.users.push(newUser);
+          saveDb(db);
+
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(newUser));
         } catch (err) {
@@ -69,37 +92,61 @@ const server = http.createServer(async (req, res) => {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: err.response?.data?.errors?.[0]?.description || 'Erro no Asaas' }));
         }
-      } 
+      }
       else if (pathname === '/api/auth/login') {
         const payload = JSON.parse(body);
+        db = loadDb();
+        const user = db.users.find(u => u.email === payload.email.toLowerCase());
+
+        if (!user) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Conta não encontrada. Você já se registrou? O servidor pode ter reiniciado — faça um novo registro.' }));
+          return;
+        }
+
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          id: 'cus_mock',
-          name: 'Usuário Teste',
-          email: payload.email,
-          asaasStatus: 'ACTIVE',
-          walletId: ASAAS_WALLET_ID,
-          token: 'jwt_mock'
-        }));
+        res.end(JSON.stringify(user));
+      }
+      else if (pathname === '/api/auth/me') {
+        const auth = req.headers.authorization;
+        if (!auth) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Token não fornecido' }));
+          return;
+        }
+        const token = auth.replace('Bearer ', '');
+        db = loadDb();
+        const user = db.users.find(u => u.token === token);
+        if (!user) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Sessão expirada' }));
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(user));
       }
       else if (pathname === '/api/pix/deposit') {
         const payload = JSON.parse(body);
-        console.log('[PIX] Solicitando:', payload.amount, 'para cliente:', payload.customerId);
-        
+        const customerId = payload.customerId;
+
+        if (!customerId || !customerId.startsWith('cus_')) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'ID de cliente inválido. Crie uma conta nova via REGISTRO para gerar um ID real no Asaas.' }));
+          return;
+        }
+
+        console.log('[PIX] Solicitando:', payload.amount, 'para cliente:', customerId);
+
         try {
           const payment = await asaas.post('/payments', {
-            customer: payload.customerId || 'cus_default_123',
+            customer: customerId,
             billingType: 'PIX',
             value: payload.amount,
             dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
             description: payload.description || 'Depósito GoldBank'
           });
-          
-          console.log('[PIX] Pagamento criado ID:', payment.data.id);
 
           const qrCode = await asaas.get(`/payments/${payment.data.id}/pixQrCode`);
-          console.log('[PIX] QR Code gerado com sucesso');
-
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({
             qrCodeBase64: qrCode.data.encodedImage,
@@ -110,42 +157,122 @@ const server = http.createServer(async (req, res) => {
         } catch (err) {
           console.error('[PIX ERROR]', err.response?.data || err.message);
           res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ 
-            error: err.response?.data?.errors?.[0]?.description || 'Erro ao gerar PIX no Asaas' 
+          res.end(JSON.stringify({
+            error: err.response?.data?.errors?.[0]?.description || 'Erro ao gerar PIX no Asaas'
           }));
         }
       }
       else if (pathname === '/api/wallet/balance') {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ balance: 0, availableBalance: 0, totalTransferValue: 0 }));
+        db = loadDb();
+        const auth = req.headers.authorization;
+        const token = auth ? auth.replace('Bearer ', '') : null;
+        const user = token ? db.users.find(u => u.token === token) : null;
+
+        try {
+          const wallet = await asaas.get(`/wallets/${ASAAS_WALLET_ID}/balance`);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            balance: wallet.data.balance ?? 0,
+            availableBalance: wallet.data.availableBalance ?? 0,
+            totalTransferValue: 0,
+            isDemo: false,
+            message: user?.asaasStatus === 'ACTIVE' ? null : 'Conta pendente de ativação.'
+          }));
+        } catch (err) {
+          console.error('[BALANCE ERROR]', err.response?.data || err.message);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            balance: 0,
+            availableBalance: 0,
+            totalTransferValue: 0,
+            isDemo: true,
+            message: 'Saldo indisponível no momento — ASAAS pode estar em modo produção sem saldo.'
+          }));
+        }
       }
       else if (pathname === '/api/dashboard/summary') {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ totalBalanceBRL: 0, bankBalanceBRL: 0, cryptoBalanceBRL: 0, accountsCount: 1, monthlyInflow: 0, monthlyOutflow: 0 }));
+        try {
+          const wallet = await asaas.get(`/wallets/${ASAAS_WALLET_ID}/balance`);
+          const balance = wallet.data.balance ?? 0;
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            totalBalanceBRL: balance,
+            bankBalanceBRL: balance,
+            cryptoBalanceBRL: 0,
+            accountsCount: 1,
+            monthlyInflow: 0,
+            monthlyOutflow: 0
+          }));
+        } catch (err) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            totalBalanceBRL: 0,
+            bankBalanceBRL: 0,
+            cryptoBalanceBRL: 0,
+            accountsCount: 1,
+            monthlyInflow: 0,
+            monthlyOutflow: 0
+          }));
+        }
       }
       else if (pathname === '/api/crypto/mb/prices') {
         try {
-          const mbRes = await axios.get('https://www.mercadobitcoin.net/api/BTC/ticker/');
+          const { data } = await axios.get('https://api.mercadobitcoin.net/api/v4/tickers', {
+            params: { symbols: ['BTC-BRL', 'ETH-BRL', 'SOL-BRL', 'XRP-BRL', 'BNB-BRL', 'ADA-BRL', 'USDT-BRL'] }
+          });
+          const prices = data.map(t => ({
+            coin: t.symbol.split('-')[0],
+            last: t.last,
+            open: t.open
+          }));
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify([{
-            coin: 'BTC',
-            last: parseFloat(mbRes.data.ticker.last),
-            open: parseFloat(mbRes.data.ticker.open)
-          }]));
-        } catch (e) {
+          res.end(JSON.stringify(prices));
+        } catch (err) {
+          console.error('[MB ERROR]', err.message);
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify([{ coin: 'BTC', last: 350000, open: 345000 }]));
+          res.end(JSON.stringify([]));
         }
       }
       else if (pathname === '/api/crypto/binance/prices') {
         try {
-          const bRes = await axios.get('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
+          const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'BNBUSDT', 'ADAUSDT'];
+          const { data } = await axios.get('https://api.binance.com/api/v3/ticker/price', {
+            params: { symbols: JSON.stringify(symbols) }
+          });
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify([{ symbol: 'BTCUSDT', price: parseFloat(bRes.data.price) }]));
-        } catch (e) {
+          res.end(JSON.stringify(data.map(p => ({ symbol: p.symbol, price: parseFloat(p.price) }))));
+        } catch (err) {
+          console.error('[BINANCE ERROR]', err.message);
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify([{ symbol: 'BTCUSDT', price: 65000 }]));
+          res.end(JSON.stringify([]));
         }
+      }
+      else if (pathname === '/api/user/mb-credentials') {
+        const payload = JSON.parse(body);
+        db = loadDb();
+        const auth = req.headers.authorization;
+        const token = auth ? auth.replace('Bearer ', '') : null;
+        const idx = token ? db.users.findIndex(u => u.token === token) : -1;
+
+        if (idx === -1) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Não autorizado' }));
+          return;
+        }
+
+        const cipher = crypto.createCipher('aes-256-cbc', ENCRYPTION_KEY);
+        let encrypted = cipher.update(JSON.stringify(payload), 'utf-8', 'hex');
+        encrypted += cipher.final('hex');
+
+        db.users[idx].mbCredentials = encrypted;
+        saveDb(db);
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true }));
+      }
+      else if (pathname === '/api/user/kyc') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, message: 'Documentos recebidos para análise.' }));
       }
       else {
         res.writeHead(404, { 'Content-Type': 'application/json' });
@@ -160,5 +287,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`💎 Backend Production Ativo na porta ${PORT} 💎`);
+  console.log(`💎 Backend ASAAS Ativo na porta ${PORT} 💎`);
 });
