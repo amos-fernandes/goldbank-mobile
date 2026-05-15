@@ -164,27 +164,22 @@ PORT=8081
 
 ## ✅ Última Atualização (15/05/2026)
 
-### O que foi feito:
-- **Persistência**: `db.json` substituiu o array em memória — usuários sobrevivem a restart
-- **Login real**: remoção do fallback `cus_mock` — retorna 401 se conta não existe
-- **Token real**: agora usa `crypto.randomBytes(32)` em vez de `jwt_mock`
-- **GET /api/auth/me**: endpoint de restauração de sessão implementado
-- **GET /api/wallet/balance**: consulta saldo real via ASAAS (`/wallets/{id}/balance`)
-- **GET /api/dashboard/summary**: dados dinâmicos do ASAAS
-- **GET /api/wallet/transactions**: NOVO! Endpoint integrado ao ASAAS para histórico de pagamentos
-- **GET /api/crypto/mb/prices**: preços reais da API pública do Mercado Bitcoin
-- **GET /api/crypto/binance/prices**: preços reais da API pública da Binance
-- **POST /api/crypto/buy**: NOVO! Simulação de compra de cripto com cálculo de estimativa
-- **POST /api/user/mb-credentials**: segurança aprimorada com `AES-256-CBC` (IV dinâmico)
-- **POST /api/user/kyc**: endpoint de upload de documentos
-- **UI/UX**: Componente `TransactionRow` corrigido para tipos reais e visual premium
+## ✅ ÚLTIMA ATUALIZAÇÃO (15/05/2026) — STATUS: 💎 ESTABILIZADO
 
-### Próximos Passos Sugeridos:
-- Implementar troca real de cripto via MB API usando as credenciais salvas.
-- Adicionar suporte a Sandbox/Produção dinâmico baseado no prefixo da API Key.
-- Resolver incompatibilidade do Jest no ambiente Node 20+ com React 19.
+### Conquistas e Marcos Alcançados:
+- **Estabilização de Ambiente**: Resolvido conflito de portas (Backend migrado para **8082**; Metro Bundler em **8081**).
+- **Sincronização React 19**: Versões de `react`, `react-native` e `renderer` alinhadas em **19.1.0** para compatibilidade total.
+- **Fluxo E2E Completo**: Registro, Login, Dashboard, Wallet e Cripto validados e operacionais.
+- **Persistência Real**: Banco de dados `db.json` ativo, garantindo que usuários e sessões sobrevivam a reinicializações.
+- **Segurança**: Credenciais MB protegidas com **AES-256-CBC** e IV dinâmico.
+- **Conectividade**: Configuração de IP local atualizada para acesso estável via rede Wi-Fi.
+
+### 🚀 Roadmap para Produção:
+1.  **Deploy em Cloud**: Migrar o `server/serve.js` para um ambiente Node.js (Heroku/Vercel/AWS).
+2.  **Webhooks Asaas**: Implementar o listener para confirmação automática de depósitos PIX.
+3.  **Binance API**: Integrar execução de ordens reais via API da Binance.
 
 ---
+*Documento finalizado e validado pelo PhD Fullstack Partner.*
+*Gold Bank Global Cash — Pronto para o Próximo Nível.*
 
-*Documento gerado em: 15 de maio de 2026*
-*PhD Developer — Gold Bank Global Cash v1.0.0*
