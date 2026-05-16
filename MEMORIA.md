@@ -152,13 +152,13 @@ PORT=8081
 ## 🌐 Variáveis de Ambiente
 | Variável | Arquivo | Valor (atual) | Descrição |
 |----------|---------|---------------|-----------|
-| `EXPO_PUBLIC_API_URL` | `.env` | `http://192.168.1.4:8081` | URL do backend para o app |
-| `EXPO_PUBLIC_DOMAIN` | `.env` | `192.168.1.4:8081` | Domínio para fallback |
+| `EXPO_PUBLIC_API_URL` | `.env` | `http://192.168.1.2:8082` | URL do backend para o app |
+| `EXPO_PUBLIC_DOMAIN` | `.env` | `192.168.1.2:8082` | Domínio para fallback |
 | `ASAAS_API_KEY` | `.env.private` | `$aact_prod_...` | 🔒 Chave ASAAS (PRODUÇÃO) |
 | `ASAAS_BASE_URL` | `.env.private` | `https://api.asaas.com/v3` | URL ASAAS (PRODUÇÃO) |
 | `ASAAS_WALLET_ID` | `.env.private` | `9a125b4c-...` | ID da carteira ASAAS |
 | `ENCRYPTION_KEY` | `.env.private` | (hex 64 chars) | Chave AES-256 |
-| `PORT` | `.env.private` | `8081` | Porta do servidor |
+| `PORT` | `.env.private` | `8082` | Porta do servidor |
 
 ---
 
